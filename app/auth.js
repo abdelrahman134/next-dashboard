@@ -4,20 +4,20 @@ import { authConfig } from "./authconfig";
 import credentials from "next-auth/providers/credentials";
 import { connectToDB } from "./lib/utils";
 import User from "./lib/models/User";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 const login = async (credentials) => {
   try {
     connectToDB();
     const user = await User.findOne({ username: credentials.username });
 
-    if (!user || !user.isAdmin) throw new Error("Wrong username or password");
+    if (!user || !user.isAdmin) throw new Error("Wrong credentials!");
 
     const isPasswordCorrect = await bcrypt.compare(
       credentials.password,
       user.password
     );
 
-    if (!isPasswordCorrect) throw new Error("Wrong username or password");
+    if (!isPasswordCorrect) throw new Error("Wrong credentials!");
 
     return user;
   } catch (err) {
@@ -33,7 +33,7 @@ export const { signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         try {
           const user = await login(credentials);
-   
+      
           return user;
         } catch (err) {
           return null;
@@ -45,15 +45,13 @@ export const { signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.username = user._doc.username;
+        token.username = user.username;
         token.img = user.img;
       }
       return token;
     },
     async session({ session, token }) {
-      
       if (token) {
-
         session.user.username = token.username;
         session.user.img = token.img;
       }
